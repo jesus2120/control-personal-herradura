@@ -1,52 +1,41 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
 const app = express();
-const PORT = 3000;
+app.use(cors());
+app.use(bodyParser.json());
 
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    next();
+// Conexión segura a tu base de datos en la nube
+const mongoURI = "mongodb+srv://jjesussanchez_db_user:k48rPWmOrNmVcPkB@cluster0.hghhfcz.mongodb.net/sitio_herradura?retryWrites=true&w=majority";
+
+mongoose.connect(mongoURI)
+  .then(() => console.log("✅ Conectado a MongoDB Atlas"))
+  .catch(err => console.error("❌ Error de conexión:", err));
+
+// Esquema para el Control de Personal (100+ operadores)
+const OperadorSchema = new mongoose.Schema({
+    nombre: String,
+    gafete: String,
+    vencimiento: String,
+    beneficiario: String,
+    parentesco: String
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.static(__dirname));
+const Operador = mongoose.model('Operador', OperadorSchema);
 
-const DB_PATH = path.join(__dirname, 'datos_personal.json');
-
-// RUTA DE PRUEBA RÁPIDA
-app.get('/test', (req, res) => {
-    res.send("EL SERVIDOR ESTÁ LEYENDO ESTE ARCHIVO CORRECTAMENTE");
+// Rutas para jalar y guardar datos
+app.get('/api/operadores', async (req, res) => {
+    const operadores = await Operador.find();
+    res.json(operadores);
 });
 
-// RUTA DE AUDITORÍA
-app.get('/buscar_todos', (req, res) => {
-    if (!fs.existsSync(DB_PATH)) return res.json([]);
-    const data = fs.readFileSync(DB_PATH, 'utf8');
-    res.json(JSON.parse(data || "[]"));
+app.post('/api/operadores', async (req, res) => {
+    const nuevo = new Operador(req.body);
+    await nuevo.save();
+    res.json({ status: "Operador guardado en la nube" });
 });
 
-// RUTA DE BÚSQUEDA
-app.get('/buscar', (req, res) => {
-    if (!fs.existsSync(DB_PATH)) return res.json(null);
-    const registros = JSON.parse(fs.readFileSync(DB_PATH, 'utf8') || "[]");
-    const encontrado = registros.find(r => r.economico === req.query.eco);
-    res.json(encontrado || null);
-});
-
-// RUTA DE GUARDADO
-app.post('/guardar', (req, res) => {
-    let registros = fs.existsSync(DB_PATH) ? JSON.parse(fs.readFileSync(DB_PATH, 'utf8') || "[]") : [];
-    const index = registros.findIndex(r => r.economico === req.body.economico);
-    if (index !== -1) registros[index] = req.body;
-    else registros.push(req.body);
-    fs.writeFileSync(DB_PATH, JSON.stringify(registros, null, 2));
-    res.send("OK");
-});
-
-app.listen(PORT, () => {
-    console.log("=========================================");
-    console.log("   SERVIDOR REINICIADO Y ACTUALIZADO     ");
-    console.log("=========================================");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
