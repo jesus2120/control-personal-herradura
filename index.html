@@ -23,11 +23,9 @@
         .beneficiarios-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; margin-top: 10px; }
         #modal_auditoria { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; }
         .modal-content { width: 950px; margin: 40px auto; background: #0f0f0f; border: 1px solid #d4af37; padding: 30px; border-radius: 8px; }
-        .filter-bar { display: flex; gap: 15px; background: #1a1a1a; padding: 15px; border-radius: 5px; margin-bottom: 20px; align-items: flex-end; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; }
         th { background: #d4af37; color: #000; padding: 12px; text-align: left; }
         td { border-bottom: 1px solid #222; padding: 10px; font-size: 13px; }
-        .resaltado { color: #d4af37; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -36,8 +34,8 @@
     <div style="text-align:center; margin-bottom:15px;"><img src="logo.png" style="max-height:70px;" alt="LOGO"></div>
 
     <div class="search-box">
-        <div style="width:20%"><label>ECONÓMICO</label><input type="text" id="s_eco" class="enter-nav"></div>
-        <div style="width:80%"><label>BUSCAR NOMBRE</label><input type="text" id="s_nom" class="enter-nav"></div>
+        <div style="width:20%"><label>ECONÓMICO</label><input type="text" id="s_eco"></div>
+        <div style="width:80%"><label>BUSCAR NOMBRE</label><input type="text" id="s_nom"></div>
     </div>
 
     <div class="top-bar">
@@ -56,32 +54,21 @@
                 <img id="p_foto" src="" style="display:none;"><span id="p_sin">SIN FOTO</span>
             </div>
             <div>
-                <label>NOMBRE COMPLETO</label><input type="text" id="i_nom" class="enter-nav" disabled>
+                <label>NOMBRE COMPLETO</label><input type="text" id="i_nom" disabled>
                 <div style="display:flex; gap:10px; margin-top:10px;">
-                    <div style="flex:1;"><label>ECONÓMICO</label><input type="text" id="i_eco" class="enter-nav" disabled></div>
-                    <div style="flex:1;"><label>TELÉFONO</label><input type="text" id="i_tel" class="enter-nav" disabled></div>
+                    <div style="flex:1;"><label>ECONÓMICO</label><input type="text" id="i_eco" disabled></div>
+                    <div style="flex:1;"><label>TELÉFONO</label><input type="text" id="i_tel" disabled></div>
                 </div>
             </div>
             <div>
-                <label>VENC. LICENCIA</label><input type="date" id="i_vlic" class="enter-nav" disabled>
-                <label style="margin-top:10px;">VENC. SEGURO</label><input type="date" id="i_vseg" class="enter-nav" disabled>
-                <label style="margin-top:10px;">CONTACTO EMERGENCIA</label><input type="text" id="i_enom" class="enter-nav" disabled>
-                <label style="margin-top:10px;">TEL. EMERGENCIA</label><input type="text" id="i_etel" class="enter-nav" disabled>
+                <label>VENC. LICENCIA</label><input type="date" id="i_vlic" disabled>
+                <label style="margin-top:10px;">VENC. SEGURO</label><input type="date" id="i_vseg" disabled>
+                <label style="margin-top:10px;">CONTACTO EMERGENCIA</label><input type="text" id="i_enom" disabled>
+                <label style="margin-top:10px;">TEL. EMERGENCIA</label><input type="text" id="i_etel" disabled>
             </div>
         </div>
         <div class="sensitive-data" id="admin_fields">
-            <label>DOMICILIO PARTICULAR</label><input type="text" id="i_dom" class="enter-nav" disabled>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:10px;">
-                <div><label>N° LICENCIA</label><input type="text" id="i_nlic" class="enter-nav" disabled></div>
-                <div><label>PÓLIZA DE SEGURO</label><input type="text" id="i_nseg" class="enter-nav" disabled></div>
-            </div>
-            <h4 style="color:#d4af37; margin: 20px 0 5px 0; border-bottom: 1px solid #333;">BENEFICIARIOS</h4>
-            <div class="beneficiarios-grid">
-                <div><label>NOMBRE</label><input type="text" id="b1_n" class="enter-nav" disabled></div>
-                <div><label>%</label><input type="text" id="b1_p" class="enter-nav" disabled></div>
-                <div><input type="text" id="b2_n" class="enter-nav" disabled></div>
-                <div><input type="text" id="b2_p" class="enter-nav" disabled></div>
-            </div>
+            <label>DOMICILIO PARTICULAR</label><input type="text" id="i_dom" disabled>
             <input type="file" id="f_input" style="display:none;">
             <button id="f_btn" class="btn-nav btn-sec" style="margin-top:15px; display:none;" onclick="document.getElementById('f_input').click()">Cambiar Foto</button>
             <input type="hidden" id="i_foto_base64">
@@ -89,45 +76,42 @@
     </div>
 </div>
 
-<div id="modal_auditoria">
-    </div>
-
 <script>
-    // ESTA ES LA CLAVE: El URL_BASE debe estar vacío para Render
-    const URL_BASE = window.location.origin; 
     let isAdmin = false;
-    let datosGlobales = [];
-
-    function accesoAdmin() {
-        if(prompt("Clave:") === "sitioherraduraz2") {
-            isAdmin = true;
-            document.querySelectorAll('.btn-admin').forEach(b => b.style.display = 'block');
-            document.getElementById('btn_login').style.display = 'none';
-        }
-    }
+    const URL_BASE = window.location.origin;
 
     async function buscar() {
         const eco = document.getElementById('s_eco').value;
-        const res = await fetch(`${URL_BASE}/api/operadores/buscar?eco=${eco}`);
-        if(!res.ok) return alert("Error de conexión con el servidor");
-        const d = await res.json();
-        if(d && !d.error) {
-            // Llenar campos...
-            document.getElementById('i_nom').value = d.nombre || "";
-            document.getElementById('i_eco').value = d.economico || "";
-            document.getElementById('i_tel').value = d.telefono || "";
-            document.getElementById('i_vlic').value = d.venc_licencia || "";
-            document.getElementById('i_vseg').value = d.venc_seguro || "";
-            document.getElementById('i_enom').value = d.contacto || "";
-            document.getElementById('i_etel').value = d.telefono_emergencia || "";
+        if(!eco) return alert("Ingrese Económico");
+        
+        try {
+            const res = await fetch(`${URL_BASE}/buscar?eco=${eco}`);
+            const d = await res.json();
             
-            if(d.foto) {
-                document.getElementById('p_foto').src = d.foto;
-                document.getElementById('p_foto').style.display = 'block';
-                document.getElementById('p_sin').style.display = 'none';
+            if(d && !d.error) {
+                document.getElementById('i_nom').value = d.nombre || "";
+                document.getElementById('i_eco').value = d.economico || "";
+                document.getElementById('i_tel').value = d.telefono || "";
+                document.getElementById('i_vlic').value = d.venc_licencia || "";
+                document.getElementById('i_vseg').value = d.venc_seguro || "";
+                document.getElementById('i_enom').value = d.contacto || "";
+                document.getElementById('i_etel').value = d.telefono_emergencia || "";
+                
+                if(d.foto) {
+                    document.getElementById('p_foto').src = d.foto;
+                    document.getElementById('p_foto').style.display = 'block';
+                    document.getElementById('p_sin').style.display = 'none';
+                    document.getElementById('i_foto_base64').value = d.foto;
+                }
+                
+                document.getElementById('display_area').style.display = 'block';
+                document.getElementById('admin_fields').style.display = isAdmin ? 'block' : 'none';
+            } else {
+                alert("Operador no encontrado");
             }
-            document.getElementById('display_area').style.display = 'block';
-        } else { alert("No encontrado"); }
+        } catch (e) {
+            alert("Error de conexión");
+        }
     }
 
     async function guardar() {
@@ -137,20 +121,57 @@
             telefono: document.getElementById('i_tel').value,
             venc_licencia: document.getElementById('i_vlic').value,
             venc_seguro: document.getElementById('i_vseg').value,
+            contacto: document.getElementById('i_enom').value,
+            telefono_emergencia: document.getElementById('i_etel').value,
             foto: document.getElementById('i_foto_base64').value
         };
-        const res = await fetch(`${URL_BASE}/api/operadores`, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify(d) 
+
+        const res = await fetch(`${URL_BASE}/guardar`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(d)
         });
+
         if(res.ok) {
-            alert("DATOS GRABADOS");
+            alert("DATOS GRABADOS CORRECTAMENTE");
             location.reload();
         } else {
             alert("Error al guardar");
         }
     }
+
+    function accesoAdmin() {
+        if(prompt("Clave:") === "sitioherraduraz2") {
+            isAdmin = true;
+            document.querySelectorAll('.btn-admin').forEach(b => b.style.display = 'block');
+            document.getElementById('btn_login').style.display = 'none';
+        }
+    }
+
+    function habilitarEdicion() {
+        document.querySelectorAll('#display_area input').forEach(i => { i.disabled = false; i.classList.add('edit-active'); });
+        document.getElementById('f_btn').style.display = 'block';
+        document.getElementById('btn_edit').style.display = 'none';
+        document.getElementById('btn_save').style.display = 'block';
+    }
+
+    function prepararAlta() {
+        document.getElementById('display_area').style.display = 'block';
+        document.getElementById('admin_fields').style.display = 'block';
+        habilitarEdicion();
+        document.querySelectorAll('#display_area input').forEach(i => i.value = "");
+    }
+
+    document.getElementById('f_input')?.addEventListener('change', function(e) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('i_foto_base64').value = ev.target.result;
+            document.getElementById('p_foto').src = ev.target.result;
+            document.getElementById('p_foto').style.display = 'block';
+            document.getElementById('p_sin').style.display = 'none';
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
 </script>
 </body>
 </html>
