@@ -6,59 +6,91 @@ const path = require('path');
 
 const app = express();
 
-// Configuraciones necesarias
+// Configuraciones (Aumentamos el límite para que soporten las FOTOS)
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(express.static(__dirname)); 
 
-// Tu llave de conexión a MongoDB Atlas
+// Tu conexión a MongoDB Atlas
 const mongoURI = "mongodb+srv://jjesussanchez_db_user:k48rPWmOrNmVcPkB@cluster0.hghhfcz.mongodb.net/sitio_herradura?retryWrites=true&w=majority";
 
 mongoose.connect(mongoURI)
   .then(() => console.log("✅ Conectado a MongoDB Atlas"))
   .catch(err => console.error("❌ Error de conexión:", err));
 
-// Esquema para el Control de Personal
+// Esquema completo con todos tus campos del Sistema Herradura
 const OperadorSchema = new mongoose.Schema({
     nombre: String,
-    gafete: String,
-    vencimiento: String,
-    beneficiario: String,
-    parentesco: String
+    economico: String,
+    telefono: String,
+    domicilio: String,
+    venc_licencia: String,
+    venc_seguro: String,
+    contacto: String,
+    telefono_emergencia: String,
+    licencia: String,
+    seguro: String,
+    b1_n: String, b1_p: String,
+    b2_n: String, b2_p: String,
+    b3_n: String, b3_p: String,
+    b4_n: String, b4_p: String,
+    foto: String // Aquí se guarda la imagen en base64
 });
 
 const Operador = mongoose.model('Operador', OperadorSchema);
 
-// --- RUTAS DEL SISTEMA ---
+// --- RUTAS DEL SERVIDOR ---
 
-// 1. Cargar la página principal (Tu diseño elegante)
+// 1. Cargar la página principal
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'índice.html'));
 });
 
-// 2. Obtener la lista de operadores de la nube
+// 2. Guardar o Actualizar un operador (Alta/Editar)
+app.post('/api/operadores', async (req, res) => {
+    try {
+        const { economico } = req.body;
+        // Si ya existe el económico, lo actualiza. Si no, lo crea.
+        const resultado = await Operador.findOneAndUpdate(
+            { economico: economico }, 
+            req.body, 
+            { upsert: true, new: true }
+        );
+        res.json({ status: "OK", data: resultado });
+    } catch (err) {
+        res.status(500).json({ error: "Error al guardar en base de datos" });
+    }
+});
+
+// 3. Buscar un operador por Económico o Nombre
+app.get('/api/operadores/buscar', async (req, res) => {
+    try {
+        const { eco, nom } = req.query;
+        let busqueda = {};
+        
+        if (eco) busqueda = { economico: eco };
+        else if (nom) busqueda = { nombre: new RegExp(nom, 'i') }; // Busca coincidencias de nombre
+
+        const operador = await Operador.findOne(busqueda);
+        if (operador) res.json(operador);
+        else res.json({ error: "No encontrado" });
+    } catch (err) {
+        res.status(500).json({ error: "Error en la búsqueda" });
+    }
+});
+
+// 4. Obtener todos (Para el panel de Auditoría)
 app.get('/api/operadores', async (req, res) => {
     try {
         const operadores = await Operador.find();
         res.json(operadores);
     } catch (err) {
-        res.status(500).send("Error al obtener datos");
+        res.status(500).json({ error: "Error al obtener lista" });
     }
 });
 
-// 3. Guardar un nuevo operador en la nube
-app.post('/api/operadores', async (req, res) => {
-    try {
-        const nuevo = new Operador(req.body);
-        await nuevo.save();
-        res.json({ status: "Operador guardado con éxito" });
-    } catch (err) {
-        res.status(500).send("Error al guardar");
-    }
-});
-
-// Iniciar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`🚀 Servidor Herradura listo en puerto ${PORT}`);
 });
